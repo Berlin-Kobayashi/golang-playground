@@ -8,6 +8,7 @@ import (
 	"github.com/DanShu93/golang-playground/fileutil"
 
 //	"github.com/golang/example/stringutil"
+	"github.com/DanShu93/golang-playground/api"
 )
 
 var m = map[string]int{"one":1, "two":2, "three":3}
@@ -33,4 +34,8 @@ func main() {
 	fileutil.WriteJsonMap(encodedMap)
 
 	fmt.Println("just writtten json into a file")
+
+	fmt.Println("starting service now...")
+
+	api.Start()
 }
