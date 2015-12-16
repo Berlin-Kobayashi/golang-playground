@@ -15,8 +15,10 @@ func (h Hello) ServeHTTP(
 w http.ResponseWriter,
 r *http.Request) {
 	stock := r.URL.Query().Get("stock")
-	data[stock]++
-	fmt.Fprint(w, string(serialization.EncodeJsonMap(data)))
+	if stock != "" {
+		data[stock]++
+		fmt.Fprint(w, string(serialization.EncodeJsonMap(data)))
+	}
 }
 
 func Start() {
