@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"flag"
 	"fmt"
 	"math/big"
 	"os"
@@ -12,30 +13,52 @@ import (
 )
 
 func main() {
+	flag.Parse()
+	var input = flag.Args()
+	characterAmount, _ := strconv.Atoi(input[0])
 	clearTerminal()
-	chars := []string{"X", "Y", "Z"}
+	chars := createCharacters(characterAmount)
 	width := getTerminalWidth()
-	for num := 0; ; num++ {
+	border := createBoarder(width)
+	speed, _ := strconv.Atoi(input[1])
+	for {
+		fmt.Println(border)
 		for i, char := range chars {
 			steps, _ := rand.Int(rand.Reader, big.NewInt(5))
 			for j := int64(0); j < steps.Int64(); j++ {
 				if len(chars[i]) >= width {
-					fmt.Println(strconv.Itoa(i) + " WON!")
+					fmt.Println(string(chars[i][len(chars[i])-1]) + " WON!")
 					return
 				}
 				chars[i] = " " + char
 			}
-
-			resetCursor()
-			for _, printedChar := range chars {
-
-				// for colorCode := 30; colorCode < 38; colorCode++ {
-				fmt.Println(bold(color(31+i%6, printedChar)))
-				// }
-			}
-			time.Sleep(time.Millisecond * 10)
+			fmt.Println(color(32, bold(char)))
+			fmt.Println(border)
 		}
+
+		time.Sleep(time.Millisecond * time.Duration(speed))
+		resetCursor()
 	}
+}
+
+func createCharacters(characterAmount int) []string {
+	characters := []string{}
+
+	for i := 0; i < characterAmount; i++ {
+		characters = append(characters, string('!'+byte(i)))
+	}
+
+	return characters
+}
+
+func createBoarder(width int) string {
+	border := ""
+
+	for i := 0; i < width; i++ {
+		border += "-"
+	}
+
+	return border
 }
 
 func getTerminalWidth() int {
