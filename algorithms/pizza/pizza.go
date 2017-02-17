@@ -14,7 +14,7 @@ var (
 
 type Topping struct {
 	Value, visited bool
-	sliceSize      int
+	sliceStatus    int
 }
 
 type PizzaCutter struct {
@@ -97,23 +97,96 @@ func readFile(path string) string {
 }
 
 func (p PizzaCutter) GetPerfectCuts() Cuts {
-	perfectCuts := Cuts{}
+	cuts, _ := p.getPerfectCutsR(0, 0, 0, Cuts{})
 
-	for rowIndex := 0; rowIndex < len(p.Pizza); rowIndex++ {
+	return cuts
+}
+
+func (p PizzaCutter) getPerfectCutsR(posX, posY, score int, perfectCuts Cuts) (Cuts, bool) {
+	for rowIndex := posX; rowIndex < len(p.Pizza); rowIndex++ {
 		row := p.Pizza[rowIndex]
-		for toppingIndex := 0; toppingIndex < len(row); toppingIndex++ {
+		for toppingIndex := posY; toppingIndex < len(row); toppingIndex++ {
 			topping := row[toppingIndex]
 			if !topping.visited {
-				for sliceSizeCounter := 0; sliceSizeCounter < p.MaxSliceSize; sliceSizeCounter++ {
+				tomatoCounts := make([]int, len(row), len(row))
+				mushroomCounts := make([]int, len(row), len(row))
 
+				for sliceRowIndex := 0; sliceRowIndex < p.MaxSliceSize && rowIndex+sliceRowIndex < len(p.Pizza); sliceRowIndex++ {
+					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && toppingIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
+						checkedTopping := p.Pizza[rowIndex+sliceRowIndex][toppingIndex+sliceColumnIndex]
+						if !checkedTopping.visited {
+							if checkedTopping.Value == true {
+								tomatoCounts[sliceColumnIndex]++
+							} else {
+								mushroomCounts[sliceColumnIndex]++
+							}
+							if sliceSum(tomatoCounts[:sliceColumnIndex+1]) >= p.MinSliceToppingCount && sliceSum(mushroomCounts[:sliceColumnIndex+1]) >= p.MinSliceToppingCount {
+								for i := 0; i <= sliceRowIndex; i++ {
+									for j := 0; j <= sliceColumnIndex; j++ {
+										p.Pizza[rowIndex+i][toppingIndex+j].visited = true
+									}
+								}
+								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
+								perfectCuts = append(perfectCuts, Cut{rowIndex, toppingIndex, rowIndex + sliceRowIndex, toppingIndex + sliceColumnIndex})
+
+								if score == len(p.Pizza)*len(row) {
+									return perfectCuts, true
+								}
+
+								nextPosX := 0
+								nextPosY := 0
+								hasNextPos := false
+							OUTER:
+								for nextPosRowIndex, i := rowIndex, 0; nextPosRowIndex < len(p.Pizza); nextPosRowIndex, i = nextPosRowIndex+1, i+1 {
+									nextPosColumnIndex := 0
+									if i == 0 {
+										nextPosColumnIndex = toppingIndex + sliceColumnIndex + 1
+									}
+									for ; nextPosColumnIndex < len(row); nextPosColumnIndex++ {
+										if p.Pizza[nextPosRowIndex][nextPosColumnIndex].visited == false {
+											nextPosX = nextPosRowIndex
+											nextPosY = nextPosColumnIndex
+											hasNextPos = true
+											break OUTER
+										}
+									}
+								}
+								if hasNextPos {
+									cuts, isPerfect := p.getPerfectCutsR(nextPosX, nextPosY, score, perfectCuts)
+									if isPerfect {
+										return cuts, true
+									}
+									perfectCuts = cuts
+
+									for i := 0; i <= sliceRowIndex; i++ {
+										for j := 0; j <= sliceColumnIndex; j++ {
+											p.Pizza[rowIndex+i][toppingIndex+j].visited = false
+										}
+									}
+									score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
+									perfectCuts = perfectCuts[:len(perfectCuts)-1]
+								}
+
+							}
+						}
+					}
 				}
 			}
 		}
 	}
 
-	return perfectCuts
+	return perfectCuts, false
+}
+
+func sliceSum(slice []int) int {
+	r := 0
+	for _, v := range slice {
+		r += v
+	}
+
+	return r
 }
 
 func main() {
-	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/big.in"))
+	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/example.in").GetPerfectCuts())
 }
