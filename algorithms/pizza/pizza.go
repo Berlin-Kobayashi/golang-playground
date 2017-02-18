@@ -159,6 +159,46 @@ func (p *PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, cuts Cut
 	return cuts, false
 }
 
+func (p *PizzaCutter) isValidCuts(cuts Cuts) (bool, string) {
+	pizza := make([][]Cell, len(p.Pizza), len(p.Pizza))
+	for i := range pizza {
+		pizza[i] = make([]Cell, len(p.Pizza[0]), len(p.Pizza[0]))
+	}
+
+	for c, cut := range cuts {
+		tomatoCount := 0
+		mushroomCount := 0
+		if (cut.RowB-cut.RowA)*(cut.ColumnB-cut.ColumnA) > p.MaxSliceSize {
+			return false, fmt.Sprintf("To big cut at cut number %d", c)
+		}
+
+		for i := range pizza {
+			for j := range pizza[i] {
+				if i >= cut.RowA && i <= cut.RowB && j >= cut.ColumnA && j <= cut.ColumnB {
+					if pizza[i][j].visited {
+						return false, fmt.Sprintf("Reused cell at cut number %d", c)
+					}
+					pizza[i][j].visited = true
+					if p.Pizza[i][j].Value {
+						tomatoCount++
+					} else {
+						mushroomCount++
+					}
+				}
+			}
+		}
+
+		if tomatoCount < p.MinSliceCellCount {
+			return false, fmt.Sprintf("Not enough tomatos at cut number %d", c)
+		}
+		if mushroomCount < p.MinSliceCellCount {
+			return false, fmt.Sprintf("Not enough mushrooms at cut number %d", c)
+		}
+	}
+
+	return true, ""
+}
+
 func (pizza Pizza) IsVisited(cut Cut) bool {
 	for i := cut.RowA; i <= cut.RowB; i++ {
 		for j := cut.ColumnA; j <= cut.ColumnB; j++ {

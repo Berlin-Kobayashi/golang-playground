@@ -7,7 +7,7 @@ import (
 
 var pizzaCutter = PizzaCutter{
 	MinSliceCellCount: 1,
-	MaxSliceSize:         6,
+	MaxSliceSize:      6,
 	Pizza: [][]Cell{
 		{Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}},
 		{Cell{Value: true}, Cell{Value: false}, Cell{Value: false}, Cell{Value: false}, Cell{Value: true}},
@@ -65,6 +65,29 @@ func TestCutToString(t *testing.T) {
 	}
 }
 
+func TestIsValidCuts(t *testing.T) {
+	validCuts := Cuts{Cut{RowA: 0, RowB: 1, ColumnA: 1, ColumnB: 1}}
+	valid, message := pizzaCutter.isValidCuts(validCuts)
+	if !valid {
+		t.Fatalf("PizzaCutter.IsValidCuts() should return true but returned %s", message)
+	}
+	notEnoughTomatoesCuts := Cuts{Cut{RowA: 1, RowB: 1, ColumnA: 1, ColumnB: 2}}
+	valid, message = pizzaCutter.isValidCuts(notEnoughTomatoesCuts)
+	if valid {
+		t.Fatal("PizzaCutter.IsValidCuts() should return false cause not enough tomatoes but returned true")
+	}
+	notEnoughMushroomsCuts := Cuts{Cut{RowA: 0, RowB: 0, ColumnA: 0, ColumnB: 1}}
+	valid, message = pizzaCutter.isValidCuts(notEnoughMushroomsCuts)
+	if valid {
+		t.Fatal("PizzaCutter.IsValidCuts() should return false cause not enough mushrooms but returned true")
+	}
+	tooBigCuts := Cuts{Cut{RowA: 0, RowB: 0, ColumnA: 2, ColumnB: 2}}
+	valid, message = pizzaCutter.isValidCuts(tooBigCuts)
+	if valid {
+		t.Fatal("PizzaCutter.IsValidCuts() should return false cause too big cut but returned true")
+	}
+}
+
 func TestGetPerfectCutTiny(t *testing.T) {
 	actualPerfectCut := pizzaCutter.GetPerfectCuts()
 	if !reflect.DeepEqual(actualPerfectCut, perfectCut) {
@@ -76,30 +99,8 @@ func TestGetPerfectCutSmall(t *testing.T) {
 	path := "./input/small.in"
 	actualPizzaCutter := NewPizzaCutterFromFile(path)
 	actualPerfectCut := actualPizzaCutter.GetPerfectCuts()
-	invalidCut, valid := isValidCuts(actualPerfectCut, len(actualPizzaCutter.Pizza), len(actualPizzaCutter.Pizza[0]))
+	valid, message := actualPizzaCutter.isValidCuts(actualPerfectCut)
 	if !valid {
-		t.Fatalf("PizzaCutter.GetPerfectCuts() returned an  invalid valid cut at line %d \n%s", invalidCut, actualPerfectCut)
+		t.Fatalf("PizzaCutter.GetPerfectCuts() returned an invalid valid cut: %s \n%s", message, actualPerfectCut)
 	}
-}
-
-func isValidCuts(cuts Cuts, x, y int) (int, bool) {
-	pizza := make([][]Cell, x, x)
-	for i := range pizza {
-		pizza[i] = make([]Cell, y, y)
-	}
-
-	for c, cut := range cuts {
-		for i := range pizza {
-			for j := range pizza[i] {
-				if i >= cut.RowA && i <= cut.RowB && j >= cut.ColumnA && j <= cut.ColumnB {
-					if pizza[i][j].visited {
-						return c, false
-					}
-					pizza[i][j].visited = true
-				}
-			}
-		}
-	}
-
-	return 0, true
 }
