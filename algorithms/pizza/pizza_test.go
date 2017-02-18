@@ -74,23 +74,24 @@ func TestGetPerfectCutSmall(t *testing.T) {
 	path := "./input/small.in"
 	actualPizzaCutter := NewPizzaCutterFromFile(path)
 	actualPerfectCut := actualPizzaCutter.GetPerfectCuts()
-	if !isValidCuts(actualPerfectCut, len(actualPizzaCutter.Pizza), len(actualPizzaCutter.Pizza[0])) {
-		t.Fatalf("PizzaCutter.GetPerfectCuts() should return a valid cut")
+	invalidCut, valid := isValidCuts(actualPerfectCut, len(actualPizzaCutter.Pizza), len(actualPizzaCutter.Pizza[0]))
+	if !valid {
+		t.Fatalf("PizzaCutter.GetPerfectCuts() returned an  invalid valid cut at line %d \n%s", invalidCut, actualPerfectCut)
 	}
 }
 
-func isValidCuts(cuts Cuts, x, y int) bool {
+func isValidCuts(cuts Cuts, x, y int) (int, bool) {
 	pizza := make([][]Topping, x, x)
 	for i := range pizza {
 		pizza[i] = make([]Topping, y, y)
 	}
 
-	for _, cut := range cuts {
+	for c, cut := range cuts {
 		for i := range pizza {
 			for j := range pizza[i] {
 				if i >= cut.RowA && i <= cut.RowB && j >= cut.ColumnA && j <= cut.ColumnB {
 					if pizza[i][j].visited {
-						return false
+						return c, false
 					}
 					pizza[i][j].visited = true
 				}
@@ -98,5 +99,5 @@ func isValidCuts(cuts Cuts, x, y int) bool {
 		}
 	}
 
-	return true
+	return 0, true
 }
