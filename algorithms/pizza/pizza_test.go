@@ -9,9 +9,9 @@ var pizzaCutter = PizzaCutter{
 	MinSliceToppingCount: 1,
 	MaxSliceSize:         6,
 	Pizza: [][]Topping{
-		[]Topping{Tomato, Tomato, Tomato, Tomato, Tomato},
-		[]Topping{Tomato, Mushroom, Mushroom, Mushroom, Tomato},
-		[]Topping{Tomato, Tomato, Tomato, Tomato, Tomato},
+		{Tomato, Tomato, Tomato, Tomato, Tomato},
+		{Tomato, Mushroom, Mushroom, Mushroom, Tomato},
+		{Tomato, Tomato, Tomato, Tomato, Tomato},
 	},
 }
 
@@ -63,9 +63,40 @@ func TestCutToString(t *testing.T) {
 	}
 }
 
-func TestGetPerfectCut(t *testing.T) {
+func TestGetPerfectCutTiny(t *testing.T) {
 	actualPerfectCut := pizzaCutter.GetPerfectCuts()
 	if !reflect.DeepEqual(actualPerfectCut, perfectCut) {
 		t.Fatalf("PizzaCutter.GetPerfectCuts() should return %s but returned %s", perfectCut, actualPerfectCut)
 	}
+}
+
+func TestGetPerfectCutSmall(t *testing.T) {
+	path := "./input/small.in"
+	actualPizzaCutter := NewPizzaCutterFromFile(path)
+	actualPerfectCut := actualPizzaCutter.GetPerfectCuts()
+	if !isValidCuts(actualPerfectCut, len(actualPizzaCutter.Pizza), len(actualPizzaCutter.Pizza[0])) {
+		t.Fatalf("PizzaCutter.GetPerfectCuts() should return a valid cut")
+	}
+}
+
+func isValidCuts(cuts Cuts, x, y int) bool {
+	pizza := make([][]Topping, x, x)
+	for i := range pizza {
+		pizza[i] = make([]Topping, y, y)
+	}
+
+	for _, cut := range cuts {
+		for i := range pizza {
+			for j := range pizza[i] {
+				if i >= cut.RowA && i <= cut.RowB && j >= cut.ColumnA && j <= cut.ColumnB {
+					if pizza[i][j].visited {
+						return false
+					}
+					pizza[i][j].visited = true
+				}
+			}
+		}
+	}
+
+	return true
 }
