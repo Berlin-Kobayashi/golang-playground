@@ -117,3 +117,29 @@ func TestGetPerfectCutSmall(t *testing.T) {
 		t.Fatalf("PizzaCutter.GetPerfectCuts() returned an invalid valid cut: %s \n%s", message, actualPerfectCut)
 	}
 }
+
+func TestRotatePizza(t *testing.T) {
+	pizza := Pizza{
+		{Cell{Value: true}, Cell{Value: true}, Cell{Value: false}},
+		{Cell{Value: false}, Cell{Value: true}, Cell{Value: false}},
+	}
+	expectedPizza := Pizza{
+		{Cell{Value: false}, Cell{Value: false}},
+		{Cell{Value: true}, Cell{Value: true}},
+		{Cell{Value: true}, Cell{Value: false}},
+	}
+	actualPizza := pizza.Rotate(1)
+	if !reflect.DeepEqual(actualPizza, expectedPizza) {
+		t.Fatalf("Rotated pizza should be %s but was %s", expectedPizza, actualPizza)
+	}
+
+	expectedPizza = Pizza{
+		{Cell{Value: false}, Cell{Value: true}, Cell{Value: false}},
+		{Cell{Value: false}, Cell{Value: true}, Cell{Value: true}},
+	}
+	actualPizza = pizza.Rotate(2)
+	if !reflect.DeepEqual(actualPizza, expectedPizza) {
+		t.Fatalf("Rotated pizza should be %s but was %s", expectedPizza, actualPizza)
+	}
+
+}

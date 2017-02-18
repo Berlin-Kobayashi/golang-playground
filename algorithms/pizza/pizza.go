@@ -8,6 +8,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"runtime"
 )
 
 type Cell struct {
@@ -79,6 +80,28 @@ func (t Cell) String() string {
 
 func (p PizzaCutter) String() string {
 	return fmt.Sprintf("%d:%d:%s", p.MinSliceCellCount, p.MaxSliceSize, p.Pizza)
+}
+
+func (c Cut) Rotate(rotations int) Cut {
+	switch rotations % 4 {
+	case 0:
+		return Cut{RowA: c.RowA, RowB: c.RowB, ColumnA: c.ColumnA, ColumnB: c.ColumnB}
+	case 1:
+		return Cut{RowA: c.ColumnB, RowB: c.ColumnA, ColumnA: c.RowA, ColumnB: c.RowB}
+	case 2:
+		return Cut{RowA: c.RowB, RowB: c.RowA, ColumnA: c.ColumnB, ColumnB: c.ColumnA}
+	default:
+		return Cut{RowA: c.ColumnA, RowB: c.ColumnB, ColumnA: c.RowB, ColumnB: c.RowA}
+	}
+}
+
+func (c Cuts) Rotate(rotations int) Cuts {
+	result := make(Cuts, len(c), len(c))
+	for i, cut := range c {
+		result[i] = cut.Rotate(rotations)
+	}
+
+	return result
 }
 
 func (c Cuts) String() string {
@@ -248,6 +271,25 @@ func (pizza Pizza) GetNextNonVisitedPosition(cut Cut) (x int, y int, hasPosition
 	return 0, 0, false
 }
 
+func (pizza Pizza) Rotate(rotations int) Pizza {
+	previous := pizza
+	for r := 0; r < rotations%4; r++ {
+		result := Pizza{}
+		for i, row := range previous {
+			for j := len(row) - 1; j >= 0; j-- {
+				cell := row[j]
+				if len(result) == (len(row)-1)-j {
+					result = append(result, make([]Cell, len(previous), len(previous)))
+				}
+				result[(len(row)-1)-j][i] = Cell{Value: cell.Value}
+			}
+		}
+		previous = result
+	}
+
+	return previous
+}
+
 func sliceSum(slice []int) int {
 	r := 0
 	for _, v := range slice {
@@ -258,6 +300,7 @@ func sliceSum(slice []int) int {
 }
 
 func main() {
+	fmt.Printf("%d cores available\n", runtime.NumCPU())
 	flag.Parse()
 	var input = flag.Args()
 	size := input[0]
