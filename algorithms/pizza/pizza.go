@@ -107,8 +107,17 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 
 				for sliceRowIndex := 0; sliceRowIndex < p.MaxSliceSize && rowIndex+sliceRowIndex < len(p.Pizza); sliceRowIndex++ {
 					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && columnIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
+						isSliceVisited := false
+						for i := 0; i <= sliceRowIndex; i++ {
+							for j := 0; j <= sliceColumnIndex; j++ {
+								if p.Pizza[rowIndex+i][columnIndex+j].visited {
+									isSliceVisited = true
+								}
+							}
+						}
+
 						checkedTopping := p.Pizza[rowIndex+sliceRowIndex][columnIndex+sliceColumnIndex]
-						if !checkedTopping.visited {
+						if !isSliceVisited {
 							if checkedTopping.Value == true {
 								tomatoCountsPerColumn[sliceColumnIndex]++
 							} else {
@@ -124,6 +133,7 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 								perfectCuts = append(perfectCuts, Cut{rowIndex, columnIndex, rowIndex + sliceRowIndex, columnIndex + sliceColumnIndex})
 
 								if score == len(p.Pizza)*len(row) {
+									fmt.Print("PERFECT")
 									return perfectCuts, true
 								}
 
@@ -152,15 +162,14 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 									}
 									perfectCuts = cuts
 
-									for i := 0; i <= sliceRowIndex; i++ {
-										for j := 0; j <= sliceColumnIndex; j++ {
-											p.Pizza[rowIndex+i][columnIndex+j].visited = false
-										}
-									}
-									score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
-									perfectCuts = perfectCuts[:len(perfectCuts)-1]
 								}
-
+								for i := 0; i <= sliceRowIndex; i++ {
+									for j := 0; j <= sliceColumnIndex; j++ {
+										p.Pizza[rowIndex+i][columnIndex+j].visited = false
+									}
+								}
+								score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
+								perfectCuts = perfectCuts[:len(perfectCuts)-1]
 							}
 						}
 					}
@@ -182,5 +191,5 @@ func sliceSum(slice []int) int {
 }
 
 func main() {
-	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/example.in").GetPerfectCuts())
+	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/medium.in").GetPerfectCuts())
 }
