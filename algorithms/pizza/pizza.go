@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"flag"
+	"os"
+	"os/signal"
 )
 
 type Cell struct {
@@ -13,8 +16,10 @@ type Cell struct {
 
 type PizzaCutter struct {
 	MinSliceCellCount int
-	MaxSliceSize         int
-	Pizza                Pizza
+	MaxSliceSize      int
+	Pizza             Pizza
+	highScore         int
+	bestCuts          Cuts
 }
 
 type Pizza [][]Cell
@@ -53,8 +58,8 @@ func NewPizzaCutter(input string) PizzaCutter {
 
 	return PizzaCutter{
 		MinSliceCellCount: minSliceCellCount,
-		MaxSliceSize:         maxSliceSize,
-		Pizza:                pizza,
+		MaxSliceSize:      maxSliceSize,
+		Pizza:             pizza,
 	}
 }
 
@@ -92,13 +97,13 @@ func readFile(path string) string {
 	return string(content)
 }
 
-func (p PizzaCutter) GetPerfectCuts() Cuts {
+func (p *PizzaCutter) GetPerfectCuts() Cuts {
 	cuts, _ := p.getPerfectCutsR(0, 0, 0, Cuts{})
 
 	return cuts
 }
 
-func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCuts Cuts) (Cuts, bool) {
+func (p *PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, cuts Cuts) (Cuts, bool) {
 	for rowIndex := startRow; rowIndex < len(p.Pizza); rowIndex++ {
 		row := p.Pizza[rowIndex]
 		for columnIndex := startColumn; columnIndex < len(row); columnIndex++ {
@@ -121,25 +126,28 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 							if sliceSum(tomatoCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceCellCount && sliceSum(mushroomCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceCellCount {
 								p.Pizza.SetVisited(true, cut)
 								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
-								perfectCuts = append(perfectCuts, cut)
-
-								if score == len(p.Pizza)*len(row) {
-									fmt.Print("PERFECT")
-									return perfectCuts, true
+								cuts = append(cuts, cut)
+								if score > p.highScore {
+									fmt.Printf("%d > %d\n", score, p.highScore)
+									p.highScore = score
+									p.bestCuts = cuts
+									if score == len(p.Pizza)*len(row) {
+										return cuts, true
+									}
 								}
 
 								nextPosX, nextPosY, hasNextPos := p.Pizza.GetNextNonVisitedPosition(cut)
 								if hasNextPos {
-									cuts, isPerfect := p.getPerfectCutsR(nextPosX, nextPosY, score, perfectCuts)
+									cuts, isPerfect := p.getPerfectCutsR(nextPosX, nextPosY, score, cuts)
 									if isPerfect {
 										return cuts, true
 									}
-									perfectCuts = cuts
+									cuts = cuts
 
 								}
 								p.Pizza.SetVisited(false, cut)
 								score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
-								perfectCuts = perfectCuts[:len(perfectCuts)-1]
+								cuts = cuts[:len(cuts)-1]
 							}
 						}
 					}
@@ -148,7 +156,7 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 		}
 	}
 
-	return perfectCuts, false
+	return cuts, false
 }
 
 func (pizza Pizza) IsVisited(cut Cut) bool {
@@ -199,5 +207,27 @@ func sliceSum(slice []int) int {
 }
 
 func main() {
-	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/small.in").GetPerfectCuts())
+	flag.Parse()
+	var input = flag.Args()
+	size := input[0]
+
+	outputPath := fmt.Sprintf("./output/%s.out", size)
+
+	cutter := NewPizzaCutterFromFile(fmt.Sprintf("./input/%s.in", size))
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt)
+	go func() {
+		<-signals
+		saveResults(outputPath, cutter.bestCuts)
+		os.Exit(1)
+	}()
+
+	perfectCuts := cutter.GetPerfectCuts()
+
+	saveResults(outputPath, perfectCuts)
+}
+
+func saveResults(path string, results fmt.Stringer) {
+	ioutil.WriteFile(path, []byte(results.String()), 0644)
 }
