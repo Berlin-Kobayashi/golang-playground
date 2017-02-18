@@ -7,17 +7,17 @@ import (
 	"strings"
 )
 
-type Topping struct {
+type Cell struct {
 	Value, visited bool
 }
 
 type PizzaCutter struct {
-	MinSliceToppingCount int
+	MinSliceCellCount int
 	MaxSliceSize         int
 	Pizza                Pizza
 }
 
-type Pizza [][]Topping
+type Pizza [][]Cell
 
 type Cuts []Cut
 
@@ -25,12 +25,12 @@ type Cut struct {
 	RowA, ColumnA, RowB, ColumnB int
 }
 
-func NewTopping(input rune) Topping {
+func NewCell(input rune) Cell {
 	if input == 'T' {
-		return Topping{Value: true}
+		return Cell{Value: true}
 	}
 
-	return Topping{Value: false}
+	return Cell{Value: false}
 }
 
 func NewPizzaCutter(input string) PizzaCutter {
@@ -40,25 +40,25 @@ func NewPizzaCutter(input string) PizzaCutter {
 
 	rowCount, _ := strconv.Atoi(inputHeaders[0])
 	columnCount, _ := strconv.Atoi(inputHeaders[1])
-	minSliceToppingCount, _ := strconv.Atoi(inputHeaders[2])
+	minSliceCellCount, _ := strconv.Atoi(inputHeaders[2])
 	maxSliceSize, _ := strconv.Atoi(inputHeaders[3])
 
 	pizza := make(Pizza, rowCount, rowCount)
 	for i := range pizza {
-		pizza[i] = make([]Topping, columnCount, columnCount)
-		for j, toppingRune := range inputRows[i] {
-			pizza[i][j] = NewTopping(toppingRune)
+		pizza[i] = make([]Cell, columnCount, columnCount)
+		for j, cellRune := range inputRows[i] {
+			pizza[i][j] = NewCell(cellRune)
 		}
 	}
 
 	return PizzaCutter{
-		MinSliceToppingCount: minSliceToppingCount,
+		MinSliceCellCount: minSliceCellCount,
 		MaxSliceSize:         maxSliceSize,
 		Pizza:                pizza,
 	}
 }
 
-func (t Topping) String() string {
+func (t Cell) String() string {
 	if t.Value == true {
 		return "T"
 	}
@@ -67,7 +67,7 @@ func (t Topping) String() string {
 }
 
 func (p PizzaCutter) String() string {
-	return fmt.Sprintf("%d:%d:%s", p.MinSliceToppingCount, p.MaxSliceSize, p.Pizza)
+	return fmt.Sprintf("%d:%d:%s", p.MinSliceCellCount, p.MaxSliceSize, p.Pizza)
 }
 
 func (c Cuts) String() string {
@@ -102,8 +102,8 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 	for rowIndex := startRow; rowIndex < len(p.Pizza); rowIndex++ {
 		row := p.Pizza[rowIndex]
 		for columnIndex := startColumn; columnIndex < len(row); columnIndex++ {
-			topping := row[columnIndex]
-			if !topping.visited {
+			cell := row[columnIndex]
+			if !cell.visited {
 				tomatoCountsPerColumn := make([]int, len(row), len(row))
 				mushroomCountsPerColumn := make([]int, len(row), len(row))
 
@@ -111,14 +111,14 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && columnIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
 						cut := Cut{rowIndex, columnIndex, rowIndex + sliceRowIndex, columnIndex + sliceColumnIndex}
 
-						checkedTopping := p.Pizza[cut.RowB][cut.ColumnB]
+						checkedCell := p.Pizza[cut.RowB][cut.ColumnB]
 						if !p.Pizza.IsVisited(cut) {
-							if checkedTopping.Value == true {
+							if checkedCell.Value == true {
 								tomatoCountsPerColumn[sliceColumnIndex]++
 							} else {
 								mushroomCountsPerColumn[sliceColumnIndex]++
 							}
-							if sliceSum(tomatoCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount && sliceSum(mushroomCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount {
+							if sliceSum(tomatoCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceCellCount && sliceSum(mushroomCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceCellCount {
 								p.Pizza.SetVisited(true, cut)
 								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
 								perfectCuts = append(perfectCuts, cut)

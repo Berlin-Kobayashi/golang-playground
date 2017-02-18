@@ -6,12 +6,12 @@ import (
 )
 
 var pizzaCutter = PizzaCutter{
-	MinSliceToppingCount: 1,
+	MinSliceCellCount: 1,
 	MaxSliceSize:         6,
-	Pizza: [][]Topping{
-		{Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}},
-		{Topping{Value: true}, Topping{Value: false}, Topping{Value: false}, Topping{Value: false}, Topping{Value: true}},
-		{Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}},
+	Pizza: [][]Cell{
+		{Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}},
+		{Cell{Value: true}, Cell{Value: false}, Cell{Value: false}, Cell{Value: false}, Cell{Value: true}},
+		{Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}, Cell{Value: true}},
 	},
 }
 
@@ -21,14 +21,14 @@ var perfectCut = Cuts{
 	{RowA: 0, ColumnA: 3, RowB: 2, ColumnB: 4},
 }
 
-func TestNewTopping(t *testing.T) {
-	tomato := Topping{Value: true}
-	mushroom := Topping{Value: false}
-	if NewTopping('T') != tomato {
-		t.Fatalf("NewTopping() should return %s for %c", "Tomato", 'T')
+func TestNewCell(t *testing.T) {
+	tomato := Cell{Value: true}
+	mushroom := Cell{Value: false}
+	if NewCell('T') != tomato {
+		t.Fatalf("NewCell() should return %s for %c", "Tomato", 'T')
 	}
-	if NewTopping('M') != mushroom {
-		t.Fatalf("NewTopping() should return %s for %c", "Mushroom", 'M')
+	if NewCell('M') != mushroom {
+		t.Fatalf("NewCell() should return %s for %c", "Mushroom", 'M')
 	}
 }
 
@@ -83,9 +83,9 @@ func TestGetPerfectCutSmall(t *testing.T) {
 }
 
 func isValidCuts(cuts Cuts, x, y int) (int, bool) {
-	pizza := make([][]Topping, x, x)
+	pizza := make([][]Cell, x, x)
 	for i := range pizza {
-		pizza[i] = make([]Topping, y, y)
+		pizza[i] = make([]Cell, y, y)
 	}
 
 	for c, cut := range cuts {
