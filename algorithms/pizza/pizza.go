@@ -18,8 +18,8 @@ type PizzaCutter struct {
 	MinSliceCellCount int
 	MaxSliceSize      int
 	Pizza             Pizza
-	highScore         int
-	bestCuts          Cuts
+	BestResultChannel chan Result
+	bestResult        Result
 }
 
 type Pizza [][]Cell
@@ -30,6 +30,11 @@ type Cut struct {
 	RowA, ColumnA, RowB, ColumnB int
 }
 
+type Result struct {
+	Score int
+	Cuts  Cuts
+}
+
 func NewCell(input rune) Cell {
 	if input == 'T' {
 		return Cell{Value: true}
@@ -38,7 +43,7 @@ func NewCell(input rune) Cell {
 	return Cell{Value: false}
 }
 
-func NewPizzaCutter(input string) PizzaCutter {
+func NewPizzaCutter(input string, bestResultChannel chan (Result)) PizzaCutter {
 	inputRows := strings.Split(input, "\n")
 	inputHeaders := strings.Split(inputRows[0], " ")
 	inputRows = inputRows[1:]
@@ -60,6 +65,7 @@ func NewPizzaCutter(input string) PizzaCutter {
 		MinSliceCellCount: minSliceCellCount,
 		MaxSliceSize:      maxSliceSize,
 		Pizza:             pizza,
+		BestResultChannel: bestResultChannel,
 	}
 }
 
@@ -84,8 +90,8 @@ func (c Cuts) String() string {
 	return output
 }
 
-func NewPizzaCutterFromFile(path string) PizzaCutter {
-	return NewPizzaCutter(readFile(path))
+func NewPizzaCutterFromFile(path string, bestResultChannel chan (Result)) PizzaCutter {
+	return NewPizzaCutter(readFile(path), bestResultChannel)
 }
 
 func readFile(path string) string {
@@ -97,10 +103,8 @@ func readFile(path string) string {
 	return string(content)
 }
 
-func (p *PizzaCutter) GetPerfectCuts() Cuts {
-	cuts, _ := p.getPerfectCutsR(0, 0, 0, Cuts{})
-
-	return cuts
+func (p *PizzaCutter) GetPerfectCuts() {
+	go p.getPerfectCutsR(0, 0, 0, Cuts{})
 }
 
 func (p *PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, cuts Cuts) (Cuts, bool) {
@@ -127,11 +131,14 @@ func (p *PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, cuts Cut
 								p.Pizza.SetVisited(true, cut)
 								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
 								cuts = append(cuts, cut)
-								if score > p.highScore {
-									fmt.Printf("%d > %d\n", score, p.highScore)
-									p.highScore = score
-									p.bestCuts = cuts
+								if score > p.bestResult.Score {
+									p.bestResult.Score = score
+									cutsCopy := make(Cuts, len(cuts), len(cuts))
+									copy(cutsCopy, cuts)
+									p.bestResult.Cuts = cutsCopy
+									p.BestResultChannel <- p.bestResult
 									if score == len(p.Pizza)*len(row) {
+										close(p.BestResultChannel)
 										return cuts, true
 									}
 								}
@@ -256,25 +263,52 @@ func main() {
 	size := input[0]
 
 	outputPath := fmt.Sprintf("./output/%s.out", size)
+	bestResultChannel := make(chan Result)
+	cutter := NewPizzaCutterFromFile(fmt.Sprintf("./input/%s.in", size), bestResultChannel)
 
-	cutter := NewPizzaCutterFromFile(fmt.Sprintf("./input/%s.in", size))
+	lastResult := Result{}
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
+	interrupted := false
 	go func() {
 		<-signals
+		interrupted = true
 		fmt.Println("Saving results ...")
-		saveResults(outputPath, cutter.bestCuts)
+		fmt.Println(lastResult.Cuts[len(lastResult.Cuts)-2:])
+		saveResults(outputPath, lastResult.Cuts)
 		fmt.Println("Results saved!")
+
+		printResultValidationStatus(lastResult, cutter)
 
 		os.Exit(1)
 	}()
 
-	perfectCuts := cutter.GetPerfectCuts()
+	cutter.GetPerfectCuts()
 
-	saveResults(outputPath, perfectCuts)
+	for result := range cutter.BestResultChannel {
+		if !interrupted {
+			fmt.Println("asas")
+			fmt.Printf("%d > %d\n", result.Score, lastResult.Score)
+			cuts := make(Cuts, len(result.Cuts), len(result.Cuts))
+			copy(cuts, result.Cuts)
+			lastResult = Result{Score: result.Score, Cuts: result.Cuts}
+			if len(lastResult.Cuts) > 2 {
+				fmt.Println(lastResult.Cuts[len(lastResult.Cuts)-2:])
+			}
+		}
+	}
+
+	printResultValidationStatus(lastResult, cutter)
+
+	saveResults(outputPath, lastResult.Cuts)
 }
 
 func saveResults(path string, results fmt.Stringer) {
 	ioutil.WriteFile(path, []byte(results.String()), 0644)
+}
+
+func printResultValidationStatus(result Result, pizzaCutter PizzaCutter) {
+	valid, _ := pizzaCutter.isValidCuts(result.Cuts)
+	fmt.Printf("Valid %t\n", valid)
 }

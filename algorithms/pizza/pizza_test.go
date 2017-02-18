@@ -38,7 +38,7 @@ TTTTT
 TMMMT
 TTTTT
 `
-	actualPizzaCutter := NewPizzaCutter(input)
+	actualPizzaCutter := NewPizzaCutter(input, nil)
 
 	if !reflect.DeepEqual(actualPizzaCutter, pizzaCutter) {
 		t.Fatalf("NewPizzaCutter() should return %s for %s but returned %s", pizzaCutter, input, actualPizzaCutter)
@@ -47,7 +47,7 @@ TTTTT
 
 func TestNewPizzaCutterFromFile(t *testing.T) {
 	path := "./input/example.in"
-	actualPizzaCutter := NewPizzaCutterFromFile(path)
+	actualPizzaCutter := NewPizzaCutterFromFile(path, nil)
 	if !reflect.DeepEqual(actualPizzaCutter, pizzaCutter) {
 		t.Fatalf("NewPizzaCutterFromFile() should return %s for %s but returned %s", pizzaCutter, path, actualPizzaCutter)
 	}
@@ -89,7 +89,14 @@ func TestIsValidCuts(t *testing.T) {
 }
 
 func TestGetPerfectCutTiny(t *testing.T) {
-	actualPerfectCut := pizzaCutter.GetPerfectCuts()
+	pizzaCutter.BestResultChannel = make(chan Result)
+	defer func() { pizzaCutter.BestResultChannel = nil }()
+
+	actualPerfectCut := Cuts{}
+	pizzaCutter.GetPerfectCuts()
+	for result := range pizzaCutter.BestResultChannel {
+		actualPerfectCut = result.Cuts
+	}
 	if !reflect.DeepEqual(actualPerfectCut, perfectCut) {
 		t.Fatalf("PizzaCutter.GetPerfectCuts() should return %s but returned %s", perfectCut, actualPerfectCut)
 	}
@@ -97,8 +104,14 @@ func TestGetPerfectCutTiny(t *testing.T) {
 
 func TestGetPerfectCutSmall(t *testing.T) {
 	path := "./input/small.in"
-	actualPizzaCutter := NewPizzaCutterFromFile(path)
-	actualPerfectCut := actualPizzaCutter.GetPerfectCuts()
+	actualPizzaCutter := NewPizzaCutterFromFile(path, make(chan (Result)))
+
+	actualPerfectCut := Cuts{}
+	actualPizzaCutter.GetPerfectCuts()
+	for result := range actualPizzaCutter.BestResultChannel {
+		actualPerfectCut = result.Cuts
+	}
+
 	valid, message := actualPizzaCutter.isValidCuts(actualPerfectCut)
 	if !valid {
 		t.Fatalf("PizzaCutter.GetPerfectCuts() returned an invalid valid cut: %s \n%s", message, actualPerfectCut)
