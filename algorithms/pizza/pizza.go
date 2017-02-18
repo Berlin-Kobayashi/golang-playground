@@ -275,7 +275,6 @@ func main() {
 		<-signals
 		interrupted = true
 		fmt.Println("Saving results ...")
-		fmt.Println(lastResult.Cuts[len(lastResult.Cuts)-2:])
 		saveResults(outputPath, lastResult.Cuts)
 		fmt.Println("Results saved!")
 
@@ -288,14 +287,10 @@ func main() {
 
 	for result := range cutter.BestResultChannel {
 		if !interrupted {
-			fmt.Println("asas")
 			fmt.Printf("%d > %d\n", result.Score, lastResult.Score)
 			cuts := make(Cuts, len(result.Cuts), len(result.Cuts))
 			copy(cuts, result.Cuts)
 			lastResult = Result{Score: result.Score, Cuts: result.Cuts}
-			if len(lastResult.Cuts) > 2 {
-				fmt.Println(lastResult.Cuts[len(lastResult.Cuts)-2:])
-			}
 		}
 	}
 
