@@ -172,14 +172,18 @@ func (p *PizzaCutter) isValidCuts(cuts Cuts) (bool, string) {
 			return false, fmt.Sprintf("To big cut at cut number %d", c)
 		}
 
-		for i := range pizza {
-			for j := range pizza[i] {
-				if i >= cut.RowA && i <= cut.RowB && j >= cut.ColumnA && j <= cut.ColumnB {
-					if pizza[i][j].visited {
+		for rowIndex, i := cut.RowA, 0; rowIndex < len(pizza); rowIndex, i = rowIndex+1, i+1 {
+			columnIndex := 0
+			if i == 0 {
+				columnIndex = cut.ColumnA
+			}
+			for ; columnIndex < len(pizza[0]); columnIndex++ {
+				if rowIndex >= cut.RowA && rowIndex <= cut.RowB && columnIndex >= cut.ColumnA && columnIndex <= cut.ColumnB {
+					if pizza[rowIndex][columnIndex].visited {
 						return false, fmt.Sprintf("Reused cell at cut number %d", c)
 					}
-					pizza[i][j].visited = true
-					if p.Pizza[i][j].Value {
+					pizza[rowIndex][columnIndex].visited = true
+					if p.Pizza[rowIndex][columnIndex].Value {
 						tomatoCount++
 					} else {
 						mushroomCount++
@@ -259,7 +263,10 @@ func main() {
 	signal.Notify(signals, os.Interrupt)
 	go func() {
 		<-signals
+		fmt.Println("Saving results ...")
 		saveResults(outputPath, cutter.bestCuts)
+		fmt.Println("Results saved!")
+
 		os.Exit(1)
 	}()
 
