@@ -9,9 +9,9 @@ var pizzaCutter = PizzaCutter{
 	MinSliceToppingCount: 1,
 	MaxSliceSize:         6,
 	Pizza: [][]Topping{
-		{Tomato, Tomato, Tomato, Tomato, Tomato},
-		{Tomato, Mushroom, Mushroom, Mushroom, Tomato},
-		{Tomato, Tomato, Tomato, Tomato, Tomato},
+		{Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}},
+		{Topping{Value: true}, Topping{Value: false}, Topping{Value: false}, Topping{Value: false}, Topping{Value: true}},
+		{Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}, Topping{Value: true}},
 	},
 }
 
@@ -22,10 +22,12 @@ var perfectCut = Cuts{
 }
 
 func TestNewTopping(t *testing.T) {
-	if NewTopping('T') != Tomato {
+	tomato := Topping{Value: true}
+	mushroom := Topping{Value: false}
+	if NewTopping('T') != tomato {
 		t.Fatalf("NewTopping() should return %s for %c", "Tomato", 'T')
 	}
-	if NewTopping('M') != Mushroom {
+	if NewTopping('M') != mushroom {
 		t.Fatalf("NewTopping() should return %s for %c", "Mushroom", 'M')
 	}
 }

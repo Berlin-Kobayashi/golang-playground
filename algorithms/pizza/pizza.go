@@ -7,14 +7,8 @@ import (
 	"strings"
 )
 
-var (
-	Tomato   = Topping{Value: true}
-	Mushroom = Topping{Value: false}
-)
-
 type Topping struct {
 	Value, visited bool
-	sliceStatus    int
 }
 
 type PizzaCutter struct {
@@ -31,10 +25,10 @@ type Cut struct {
 
 func NewTopping(input rune) Topping {
 	if input == 'T' {
-		return Tomato
+		return Topping{Value: true}
 	}
 
-	return Mushroom
+	return Topping{Value: false}
 }
 
 func NewPizzaCutter(input string) PizzaCutter {
@@ -63,7 +57,7 @@ func NewPizzaCutter(input string) PizzaCutter {
 }
 
 func (t Topping) String() string {
-	if t == Tomato {
+	if t.Value == true {
 		return "T"
 	}
 
@@ -102,32 +96,32 @@ func (p PizzaCutter) GetPerfectCuts() Cuts {
 	return cuts
 }
 
-func (p PizzaCutter) getPerfectCutsR(posX, posY, score int, perfectCuts Cuts) (Cuts, bool) {
-	for rowIndex := posX; rowIndex < len(p.Pizza); rowIndex++ {
+func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCuts Cuts) (Cuts, bool) {
+	for rowIndex := startRow; rowIndex < len(p.Pizza); rowIndex++ {
 		row := p.Pizza[rowIndex]
-		for toppingIndex := posY; toppingIndex < len(row); toppingIndex++ {
-			topping := row[toppingIndex]
+		for columnIndex := startColumn; columnIndex < len(row); columnIndex++ {
+			topping := row[columnIndex]
 			if !topping.visited {
-				tomatoCounts := make([]int, len(row), len(row))
-				mushroomCounts := make([]int, len(row), len(row))
+				tomatoCountsPerColumn := make([]int, len(row), len(row))
+				mushroomCountsPerColumn := make([]int, len(row), len(row))
 
 				for sliceRowIndex := 0; sliceRowIndex < p.MaxSliceSize && rowIndex+sliceRowIndex < len(p.Pizza); sliceRowIndex++ {
-					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && toppingIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
-						checkedTopping := p.Pizza[rowIndex+sliceRowIndex][toppingIndex+sliceColumnIndex]
+					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && columnIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
+						checkedTopping := p.Pizza[rowIndex+sliceRowIndex][columnIndex+sliceColumnIndex]
 						if !checkedTopping.visited {
 							if checkedTopping.Value == true {
-								tomatoCounts[sliceColumnIndex]++
+								tomatoCountsPerColumn[sliceColumnIndex]++
 							} else {
-								mushroomCounts[sliceColumnIndex]++
+								mushroomCountsPerColumn[sliceColumnIndex]++
 							}
-							if sliceSum(tomatoCounts[:sliceColumnIndex+1]) >= p.MinSliceToppingCount && sliceSum(mushroomCounts[:sliceColumnIndex+1]) >= p.MinSliceToppingCount {
+							if sliceSum(tomatoCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount && sliceSum(mushroomCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount {
 								for i := 0; i <= sliceRowIndex; i++ {
 									for j := 0; j <= sliceColumnIndex; j++ {
-										p.Pizza[rowIndex+i][toppingIndex+j].visited = true
+										p.Pizza[rowIndex+i][columnIndex+j].visited = true
 									}
 								}
 								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
-								perfectCuts = append(perfectCuts, Cut{rowIndex, toppingIndex, rowIndex + sliceRowIndex, toppingIndex + sliceColumnIndex})
+								perfectCuts = append(perfectCuts, Cut{rowIndex, columnIndex, rowIndex + sliceRowIndex, columnIndex + sliceColumnIndex})
 
 								if score == len(p.Pizza)*len(row) {
 									return perfectCuts, true
@@ -140,7 +134,7 @@ func (p PizzaCutter) getPerfectCutsR(posX, posY, score int, perfectCuts Cuts) (C
 								for nextPosRowIndex, i := rowIndex, 0; nextPosRowIndex < len(p.Pizza); nextPosRowIndex, i = nextPosRowIndex+1, i+1 {
 									nextPosColumnIndex := 0
 									if i == 0 {
-										nextPosColumnIndex = toppingIndex + sliceColumnIndex + 1
+										nextPosColumnIndex = columnIndex + sliceColumnIndex + 1
 									}
 									for ; nextPosColumnIndex < len(row); nextPosColumnIndex++ {
 										if p.Pizza[nextPosRowIndex][nextPosColumnIndex].visited == false {
@@ -160,7 +154,7 @@ func (p PizzaCutter) getPerfectCutsR(posX, posY, score int, perfectCuts Cuts) (C
 
 									for i := 0; i <= sliceRowIndex; i++ {
 										for j := 0; j <= sliceColumnIndex; j++ {
-											p.Pizza[rowIndex+i][toppingIndex+j].visited = false
+											p.Pizza[rowIndex+i][columnIndex+j].visited = false
 										}
 									}
 									score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
