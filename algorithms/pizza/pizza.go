@@ -14,8 +14,10 @@ type Topping struct {
 type PizzaCutter struct {
 	MinSliceToppingCount int
 	MaxSliceSize         int
-	Pizza                [][]Topping
+	Pizza                Pizza
 }
+
+type Pizza [][]Topping
 
 type Cuts []Cut
 
@@ -41,7 +43,7 @@ func NewPizzaCutter(input string) PizzaCutter {
 	minSliceToppingCount, _ := strconv.Atoi(inputHeaders[2])
 	maxSliceSize, _ := strconv.Atoi(inputHeaders[3])
 
-	pizza := make([][]Topping, rowCount, rowCount)
+	pizza := make(Pizza, rowCount, rowCount)
 	for i := range pizza {
 		pizza[i] = make([]Topping, columnCount, columnCount)
 		for j, toppingRune := range inputRows[i] {
@@ -107,54 +109,26 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 
 				for sliceRowIndex := 0; sliceRowIndex < p.MaxSliceSize && rowIndex+sliceRowIndex < len(p.Pizza); sliceRowIndex++ {
 					for sliceColumnIndex := 0; (sliceColumnIndex+1)*(sliceRowIndex+1) <= p.MaxSliceSize && columnIndex+sliceColumnIndex < len(row); sliceColumnIndex++ {
-						isSliceVisited := false
-						for i := 0; i <= sliceRowIndex; i++ {
-							for j := 0; j <= sliceColumnIndex; j++ {
-								if p.Pizza[rowIndex+i][columnIndex+j].visited {
-									isSliceVisited = true
-								}
-							}
-						}
+						cut := Cut{rowIndex, columnIndex, rowIndex + sliceRowIndex, columnIndex + sliceColumnIndex}
 
-						checkedTopping := p.Pizza[rowIndex+sliceRowIndex][columnIndex+sliceColumnIndex]
-						if !isSliceVisited {
+						checkedTopping := p.Pizza[cut.RowB][cut.ColumnB]
+						if !p.Pizza.IsVisited(cut) {
 							if checkedTopping.Value == true {
 								tomatoCountsPerColumn[sliceColumnIndex]++
 							} else {
 								mushroomCountsPerColumn[sliceColumnIndex]++
 							}
 							if sliceSum(tomatoCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount && sliceSum(mushroomCountsPerColumn[:sliceColumnIndex+1]) >= p.MinSliceToppingCount {
-								for i := 0; i <= sliceRowIndex; i++ {
-									for j := 0; j <= sliceColumnIndex; j++ {
-										p.Pizza[rowIndex+i][columnIndex+j].visited = true
-									}
-								}
+								p.Pizza.SetVisited(true, cut)
 								score += (sliceColumnIndex + 1) * (sliceRowIndex + 1)
-								perfectCuts = append(perfectCuts, Cut{rowIndex, columnIndex, rowIndex + sliceRowIndex, columnIndex + sliceColumnIndex})
+								perfectCuts = append(perfectCuts, cut)
 
 								if score == len(p.Pizza)*len(row) {
 									fmt.Print("PERFECT")
 									return perfectCuts, true
 								}
 
-								nextPosX := 0
-								nextPosY := 0
-								hasNextPos := false
-							OUTER:
-								for nextPosRowIndex, i := rowIndex, 0; nextPosRowIndex < len(p.Pizza); nextPosRowIndex, i = nextPosRowIndex+1, i+1 {
-									nextPosColumnIndex := 0
-									if i == 0 {
-										nextPosColumnIndex = columnIndex + sliceColumnIndex + 1
-									}
-									for ; nextPosColumnIndex < len(row); nextPosColumnIndex++ {
-										if p.Pizza[nextPosRowIndex][nextPosColumnIndex].visited == false {
-											nextPosX = nextPosRowIndex
-											nextPosY = nextPosColumnIndex
-											hasNextPos = true
-											break OUTER
-										}
-									}
-								}
+								nextPosX, nextPosY, hasNextPos := p.Pizza.GetNextNonVisitedPosition(cut)
 								if hasNextPos {
 									cuts, isPerfect := p.getPerfectCutsR(nextPosX, nextPosY, score, perfectCuts)
 									if isPerfect {
@@ -163,11 +137,7 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 									perfectCuts = cuts
 
 								}
-								for i := 0; i <= sliceRowIndex; i++ {
-									for j := 0; j <= sliceColumnIndex; j++ {
-										p.Pizza[rowIndex+i][columnIndex+j].visited = false
-									}
-								}
+								p.Pizza.SetVisited(false, cut)
 								score -= (sliceColumnIndex + 1) * (sliceRowIndex + 1)
 								perfectCuts = perfectCuts[:len(perfectCuts)-1]
 							}
@@ -181,6 +151,44 @@ func (p PizzaCutter) getPerfectCutsR(startRow, startColumn, score int, perfectCu
 	return perfectCuts, false
 }
 
+func (pizza Pizza) IsVisited(cut Cut) bool {
+	for i := cut.RowA; i <= cut.RowB; i++ {
+		for j := cut.ColumnA; j <= cut.ColumnB; j++ {
+			if pizza[i][j].visited {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (pizza Pizza) SetVisited(visited bool, cut Cut) bool {
+	for i := cut.RowA; i <= cut.RowB; i++ {
+		for j := cut.ColumnA; j <= cut.ColumnB; j++ {
+			pizza[i][j].visited = visited
+		}
+	}
+
+	return false
+}
+
+func (pizza Pizza) GetNextNonVisitedPosition(cut Cut) (x int, y int, hasPosition bool) {
+	for nextPosRowIndex, i := cut.RowA, 0; nextPosRowIndex < len(pizza); nextPosRowIndex, i = nextPosRowIndex+1, i+1 {
+		nextPosColumnIndex := 0
+		if i == 0 {
+			nextPosColumnIndex = cut.ColumnB + 1
+		}
+		for ; nextPosColumnIndex < len(pizza[0]); nextPosColumnIndex++ {
+			if pizza[nextPosRowIndex][nextPosColumnIndex].visited == false {
+				return nextPosRowIndex, nextPosColumnIndex, true
+			}
+		}
+	}
+
+	return 0, 0, false
+}
+
 func sliceSum(slice []int) int {
 	r := 0
 	for _, v := range slice {
@@ -191,5 +199,5 @@ func sliceSum(slice []int) int {
 }
 
 func main() {
-	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/medium.in").GetPerfectCuts())
+	fmt.Println(NewPizzaCutterFromFile("/Users/danshu/Gocode/src/github.com/DanShu93/golang-playground/algorithms/pizza/input/small.in").GetPerfectCuts())
 }
