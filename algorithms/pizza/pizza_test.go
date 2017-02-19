@@ -128,7 +128,7 @@ func TestRotatePizza(t *testing.T) {
 		{Cell{Value: true}, Cell{Value: true}},
 		{Cell{Value: true}, Cell{Value: false}},
 	}
-	actualPizza := pizza.Rotate(1)
+	actualPizza := pizza.RotateLeft(1)
 	if !reflect.DeepEqual(actualPizza, expectedPizza) {
 		t.Fatalf("Rotated pizza should be %s but was %s", expectedPizza, actualPizza)
 	}
@@ -137,7 +137,7 @@ func TestRotatePizza(t *testing.T) {
 		{Cell{Value: false}, Cell{Value: true}, Cell{Value: false}},
 		{Cell{Value: false}, Cell{Value: true}, Cell{Value: true}},
 	}
-	actualPizza = pizza.Rotate(2)
+	actualPizza = pizza.RotateLeft(2)
 	if !reflect.DeepEqual(actualPizza, expectedPizza) {
 		t.Fatalf("Rotated pizza should be %s but was %s", expectedPizza, actualPizza)
 	}
