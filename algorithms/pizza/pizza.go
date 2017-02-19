@@ -82,28 +82,6 @@ func (p PizzaCutter) String() string {
 	return fmt.Sprintf("%d:%d:%s", p.MinSliceCellCount, p.MaxSliceSize, p.Pizza)
 }
 
-func (c Cut) Rotate(rotations int) Cut {
-	switch rotations % 4 {
-	case 0:
-		return Cut{RowA: c.RowA, RowB: c.RowB, ColumnA: c.ColumnA, ColumnB: c.ColumnB}
-	case 1:
-		return Cut{RowA: c.ColumnB, RowB: c.ColumnA, ColumnA: c.RowA, ColumnB: c.RowB}
-	case 2:
-		return Cut{RowA: c.RowB, RowB: c.RowA, ColumnA: c.ColumnB, ColumnB: c.ColumnA}
-	default:
-		return Cut{RowA: c.ColumnA, RowB: c.ColumnB, ColumnA: c.RowB, ColumnB: c.RowA}
-	}
-}
-
-func (c Cuts) Rotate(rotations int) Cuts {
-	result := make(Cuts, len(c), len(c))
-	for i, cut := range c {
-		result[i] = cut.Rotate(rotations)
-	}
-
-	return result
-}
-
 func (c Cuts) String() string {
 	output := strconv.Itoa(len(c)) + "\n"
 	for _, slice := range c {
@@ -198,17 +176,31 @@ func (p *PizzaCutter) isValidCuts(cuts Cuts) (bool, string) {
 	for c, cut := range cuts {
 		tomatoCount := 0
 		mushroomCount := 0
-		if (cut.RowB-cut.RowA)*(cut.ColumnB-cut.ColumnA) > p.MaxSliceSize {
+
+		startRow := cut.RowA
+		endRow := cut.RowB
+		if cut.RowA > cut.RowB {
+			startRow = cut.RowB
+			endRow = cut.RowA
+		}
+		startColumn := cut.ColumnA
+		endColumn := cut.ColumnB
+		if cut.ColumnA > cut.ColumnB {
+			startColumn = cut.ColumnB
+			endColumn = cut.ColumnA
+		}
+
+		if (endRow-startRow)*(endColumn-startColumn) > p.MaxSliceSize {
 			return false, fmt.Sprintf("To big cut at cut number %d", c)
 		}
 
-		for rowIndex, i := cut.RowA, 0; rowIndex < len(pizza); rowIndex, i = rowIndex+1, i+1 {
+		for rowIndex, i := startRow, 0; rowIndex < len(pizza); rowIndex, i = rowIndex+1, i+1 {
 			columnIndex := 0
 			if i == 0 {
-				columnIndex = cut.ColumnA
+				columnIndex = startColumn
 			}
 			for ; columnIndex < len(pizza[0]); columnIndex++ {
-				if rowIndex >= cut.RowA && rowIndex <= cut.RowB && columnIndex >= cut.ColumnA && columnIndex <= cut.ColumnB {
+				if rowIndex >= startRow && rowIndex <= endRow && columnIndex >= startColumn && columnIndex <= endColumn {
 					if pizza[rowIndex][columnIndex].visited {
 						return false, fmt.Sprintf("Reused cell at cut number %d", c)
 					}
@@ -271,7 +263,7 @@ func (pizza Pizza) GetNextNonVisitedPosition(cut Cut) (x int, y int, hasPosition
 	return 0, 0, false
 }
 
-func (pizza Pizza) Rotate(rotations int) Pizza {
+func (pizza Pizza) RotateLeft(rotations int) Pizza {
 	previous := pizza
 	for r := 0; r < rotations%4; r++ {
 		result := Pizza{}
@@ -331,8 +323,6 @@ func main() {
 	for result := range cutter.BestResultChannel {
 		if !interrupted {
 			fmt.Printf("%d > %d\n", result.Score, lastResult.Score)
-			cuts := make(Cuts, len(result.Cuts), len(result.Cuts))
-			copy(cuts, result.Cuts)
 			lastResult = Result{Score: result.Score, Cuts: result.Cuts}
 		}
 	}
@@ -347,6 +337,6 @@ func saveResults(path string, results fmt.Stringer) {
 }
 
 func printResultValidationStatus(result Result, pizzaCutter PizzaCutter) {
-	valid, _ := pizzaCutter.isValidCuts(result.Cuts)
-	fmt.Printf("Valid %t\n", valid)
+	valid, message := pizzaCutter.isValidCuts(result.Cuts)
+	fmt.Printf("Valid %t %s\n", valid, message)
 }
