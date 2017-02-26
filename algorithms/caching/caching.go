@@ -6,13 +6,15 @@ import (
 	"io/ioutil"
 	"strings"
 	"strconv"
+	"sort"
 )
 
 type InputData struct {
-	MaxCacheSize int
-	VideoSizes   []int
-	Endpoints    []Endpoint
-	Requests     []Request
+	MaxCacheSize  int
+	CacheQuantity int
+	VideoSizes    []int
+	Endpoints     []Endpoint
+	Requests      []Request
 }
 
 type Endpoint struct {
@@ -24,8 +26,23 @@ type Request struct {
 	VideoID, Quantity, EndpointID int
 }
 
-type VideoScore struct {
-	VideoID, Score int
+type videoScore struct {
+	videoID int
+	score   float32
+}
+
+type byScore []videoScore
+
+func (v byScore) Len() int {
+	return len(v)
+}
+
+func (v byScore) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
+
+func (v byScore) Less(i, j int) bool {
+	return v[i].score < v[j].score
 }
 
 func NewInputDataFromFile(inputPath string) InputData {
@@ -39,6 +56,7 @@ func NewInputData(input string) InputData {
 	videoQuantity, _ := strconv.Atoi(inputHeaders[0])
 	endpointQuantity, _ := strconv.Atoi(inputHeaders[1])
 	requestQuantity, _ := strconv.Atoi(inputHeaders[2])
+	cacheQuantity, _ := strconv.Atoi(inputHeaders[3])
 	maxCacheSize, _ := strconv.Atoi(inputHeaders[4])
 
 	videoSizes := parseVideoSizes(inputRows[1], videoQuantity)
@@ -46,10 +64,11 @@ func NewInputData(input string) InputData {
 	requests := parseRequests(inputRows[len(inputRows)-requestQuantity-1:], requestQuantity)
 
 	return InputData{
-		MaxCacheSize: maxCacheSize,
-		VideoSizes:   videoSizes,
-		Endpoints:    endpoints,
-		Requests:     requests,
+		MaxCacheSize:  maxCacheSize,
+		CacheQuantity: cacheQuantity,
+		VideoSizes:    videoSizes,
+		Endpoints:     endpoints,
+		Requests:      requests,
 	}
 }
 
@@ -112,16 +131,63 @@ func parseRequests(input []string, quantity int) []Request {
 	return requests
 }
 
+func (inputData *InputData) PrintVideoDistributionPerCache() {
+	cacheToVideoScores := inputData.getScoresPerVideoPerCache()
+	for _, videoScores := range cacheToVideoScores {
+		sort.Sort(sort.Reverse(byScore(videoScores)))
+	}
+
+	fmt.Printf("%d\n", inputData.CacheQuantity)
+
+	for cacheID, videoScores := range cacheToVideoScores {
+		fmt.Printf("%d ", cacheID)
+
+		currentCacheSize := 0
+		videoSet := make(map[int]bool)
+		for _, videoScore := range videoScores {
+			videoID := videoScore.videoID
+			videoSize := inputData.VideoSizes[videoID]
+			if _, ok := videoSet[videoID]; !ok && currentCacheSize+videoSize <= inputData.MaxCacheSize {
+				fmt.Printf("%d ", videoID)
+				videoSet[videoID] = true
+				currentCacheSize += videoSize
+			}
+		}
+
+		fmt.Print("\n")
+	}
+}
+
+func (inputData *InputData) getScoresPerVideoPerCache() map[int][]videoScore {
+	cacheToVideoScores := make(map[int][]videoScore, len(inputData.Endpoints))
+
+	for _, request := range inputData.Requests {
+		endpoint := inputData.Endpoints[request.EndpointID]
+		videoSize := inputData.VideoSizes[request.VideoID]
+
+		for cacheID, latency := range endpoint.CacheToLatency {
+			// TODO also compare with data center here
+			score := float32(videoSize*request.Quantity) / float32(latency)
+			if _, ok := cacheToVideoScores[cacheID]; ok {
+				cacheToVideoScores[cacheID] = append(cacheToVideoScores[cacheID], videoScore{score: score, videoID: request.VideoID})
+			} else {
+				// FIXED the first for each endpoint was never used
+				cacheToVideoScores[cacheID] = []videoScore{{score: score, videoID: request.VideoID}}
+			}
+		}
+	}
+
+	return cacheToVideoScores
+}
+
 func main() {
 	flag.Parse()
 	input := flag.Args()
 
 	inputPath := input[0]
-	//outputPath := input[1]
 
 	inputData := NewInputDataFromFile(inputPath)
-
-	fmt.Printf("%+v", inputData)
+	inputData.PrintVideoDistributionPerCache()
 }
 
 func readFile(path string) string {
