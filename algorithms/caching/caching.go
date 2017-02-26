@@ -172,7 +172,6 @@ func (inputData *InputData) getScoresPerVideoPerCache() map[int][]videoScore {
 			if _, ok := cacheToVideoScores[cacheID]; ok {
 				cacheToVideoScores[cacheID] = append(cacheToVideoScores[cacheID], videoScore{score: score, videoID: request.VideoID})
 			} else {
-				// FIXED the first for each endpoint was never used
 				cacheToVideoScores[cacheID] = []videoScore{{score: score, videoID: request.VideoID}}
 			}
 		}
