@@ -166,8 +166,9 @@ func (inputData *InputData) getScoresPerVideoPerCache() map[int][]videoScore {
 		videoSize := inputData.VideoSizes[request.VideoID]
 
 		for cacheID, latency := range endpoint.CacheToLatency {
-			// TODO also compare with data center here
-			score := float32(videoSize*request.Quantity) / float32(latency)
+			latencyGain := endpoint.DataCenterLatency - latency
+			effectiveLatencyGain := latencyGain * request.Quantity
+			score := float32(effectiveLatencyGain) / float32(videoSize)
 			if _, ok := cacheToVideoScores[cacheID]; ok {
 				cacheToVideoScores[cacheID] = append(cacheToVideoScores[cacheID], videoScore{score: score, videoID: request.VideoID})
 			} else {
