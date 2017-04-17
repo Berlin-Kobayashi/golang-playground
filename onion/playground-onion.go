@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"strings"
 	"errors"
+	"github.com/DanShu93/golang-playground/onion/onewire"
+	"github.com/DanShu93/golang-playground/onion/temperature"
 )
 
 var gpioPinToStatus = map[int]bool{0: false, 1: false, 2: false, 3: false, 18: false, 19: false}
@@ -16,11 +18,34 @@ var gpioPinToStatus = map[int]bool{0: false, 1: false, 2: false, 3: false, 18: f
 var sevenSegmentDigitPins = []int{11, 18, 19, 0}
 
 func main() {
-	useSevenSemgentDisplay()
+	readTemperatureSensor()
+}
+
+// Experiment 7
+func readTemperatureSensor() {
+	oneWireGpio := 19
+	pollingInterval := 1 * time.Second
+
+	if ! onewire.SetupOneWire(oneWireGpio) {
+		panic(errors.New("Kernel module could not be inserted. Please reboot and try again."))
+	}
+
+	sensorAddress := onewire.ScanOneAddress()
+
+	sensor := temperature.NewTemperatureSensor(sensorAddress, oneWireGpio)
+	if !sensor.Ready {
+		panic(errors.New("Sensor was not set up correctly. Please make sure that your sensor is firmly connected to the GPIO specified above and try again."))
+	}
+
+	for {
+		value := sensor.ReadValue()
+		fmt.Printf("T = %f C\n", value)
+		time.Sleep(pollingInterval)
+	}
 }
 
 // Experiment 6
-func useSevenSemgentDisplay() {
+func useSevenSegmentDisplay() {
 	clearSevenSegmentDisplay()
 
 	flag.Parse()
